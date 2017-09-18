@@ -1,8 +1,8 @@
 package com.tek.interview.question;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,8 +80,8 @@ class OrderLine {
 			throw new Exception("Item is NULL");
 		}
 		assert quantity > 0;
-		item = item;
-		quantity = quantity;
+		this.item = item;
+		this.quantity = quantity;
 	}
 
 	public Item getItem() {
@@ -102,6 +102,10 @@ class Order {
 			System.err.println("ERROR - Order is NULL");
 			throw new IllegalArgumentException("Order is NULL");
 		}
+		if (orderLines == null) {
+			/* Create an Object - If it is Empty */
+			orderLines = new ArrayList<OrderLine>();
+		}
 		orderLines.add(o);
 	}
 
@@ -120,15 +124,17 @@ class Order {
 
 class calculator {
 
-	public static double rounding(double value) {
-		return ( (int) (value * 100)) / 100;
+	public static double rounding(double value, int scale, int mode) {
+		return new BigDecimal(value).setScale(scale, mode).doubleValue();
 	}
 
 	/**
-	 * receives a collection of orders. For each order, iterates on the order lines and calculate the total price which
-	 * is the item's price * quantity * taxes.
+	 * receives a collection of orders. For each order, iterates on the order
+	 * lines and calculate the total price which is the item's price * quantity
+	 * * taxes.
 	 * 
-	 * For each order, print the total Sales Tax paid and Total price without taxes for this order
+	 * For each order, print the total Sales Tax paid and Total price without
+	 * taxes for this order
 	 */
 	public void calculate(Map<String, Order> o) {
 
@@ -137,7 +143,7 @@ class calculator {
 		// Iterate through the orders
 		for (Map.Entry<String, Order> entry : o.entrySet()) {
 			System.out.println("*******" + entry.getKey() + "*******");
-			grandtotal = 0;
+			// grandtotal = 0;
 
 			Order r = entry.getValue();
 
@@ -145,40 +151,40 @@ class calculator {
 			double total = 0;
 
 			// Iterate through the items in the order
-			for (int i = 0; i <= r.size(); i++) {
+			for (int i = 0; i <= r.size() - 1; i++) {
 
 				// Calculate the taxes
 				double tax = 0;
+				if (r.get(i).getItem() != null) {
+					if (r.get(i).getItem().getDescription().contains("imported")
+							|| r.get(i).getItem().getDescription().contains("Imported")) {
+						tax = r.get(i).getItem().getPrice() * 0.15; // Extra 5% tax on  imported items
+					} else {
+						tax = r.get(i).getItem().getPrice() * 0.10;
+					}
 
-				if (r.get(i).getItem().getDescription().contains("imported")) {
-					tax = rounding(r.get(i).getItem().getPrice() * 0.15); // Extra 5% tax on
-					// imported items
-				} else {
-					tax = rounding(r.get(i).getItem().getPrice() * 0.10);
+					// Calculate the total price
+					double totalprice = r.get(i).getItem().getPrice() + rounding(tax, 2, BigDecimal.ROUND_HALF_EVEN);
+
+					// Print out the item's total price
+					System.out.println(r.get(i).getItem().getDescription() + ": "
+							+ rounding(totalprice, 2, BigDecimal.ROUND_HALF_EVEN));
+
+					// Keep a running total
+					totalTax += tax;
+					total += r.get(i).getItem().getPrice();
 				}
-
-				// Calculate the total price
-				double totalprice = r.get(i).getItem().getPrice() + Math.floor(tax);
-
-				// Print out the item's total price
-				System.out.println(r.get(i).getItem().getDescription() + ": " + Math.floor(totalprice));
-
-				// Keep a running total
-				totalTax += tax;
-				total += r.get(i).getItem().getPrice();
 			}
 
 			// Print out the total taxes
-			System.out.println("Sales Tax: " + Math.floor(totalTax));
-
-			total = total + totalTax;
+			System.out.println("Sales Tax: " + rounding(totalTax, 2, BigDecimal.ROUND_UP));
 
 			// Print out the total amount
-			System.out.println("Total: " + Math.floor(total * 100) / 100);
+			System.out.println("Total: " + rounding(total, 2, BigDecimal.ROUND_UP));
 			grandtotal += total;
 		}
 
-		System.out.println("Sum of orders: " + Math.floor(grandtotal * 100) / 100);
+		System.out.println("Sum of orders: " + rounding(grandtotal, 2, BigDecimal.ROUND_UP));
 	}
 }
 
@@ -186,11 +192,9 @@ public class Foo {
 
 	public static void main(String[] args) throws Exception {
 
-		Map<String, Order> o = new HashMap<String, Order>();
+		Map<String, Order> o = new LinkedHashMap<String, Order>();
 
 		Order c = new Order();
-
-		double grandTotal = 0;
 
 		c.add(new OrderLine(new Item("book", (float) 12.49), 1));
 		c.add(new OrderLine(new Item("music CD", (float) 14.99), 1));
@@ -199,7 +203,7 @@ public class Foo {
 		o.put("Order 1", c);
 
 		// Reuse cart for an other order
-		c.clear();
+		c = new Order();
 
 		c.add(new OrderLine(new Item("imported box of chocolate", 10), 1));
 		c.add(new OrderLine(new Item("imported bottle of perfume", (float) 47.50), 1));
@@ -207,7 +211,7 @@ public class Foo {
 		o.put("Order 2", c);
 
 		// Reuse cart for an other order
-		c.clear();
+		c = new Order();
 
 		c.add(new OrderLine(new Item("Imported bottle of perfume", (float) 27.99), 1));
 		c.add(new OrderLine(new Item("bottle of perfume", (float) 18.99), 1));
